@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from slackclient import SlackClient
 
@@ -26,16 +27,25 @@ class Chefbot(object):
                                 in self.slack_client.rtm_read()
                                 if x['type'] == 'message' and
                                     self.AT_BOT in x['text']]
-                print messages
+                
+                self.parse_messages(messages)
+
                 time.sleep(self.websocket_delay)
         else:
             raise Exception('Could not connect to Slack RTM API')
 
-    def parse_message(self, input):
-        pass
+    def parse_messages(self, messages):
+        for message in messages:
+            if re.search('schedule', message, re.IGNORECASE):
+                # Scheduling functions
+                pass
+            else:
+                # List functions
+                pass
 
     def add_to_list(self):
         # Add item to list
+        # TODO: list different ingredient options including word
         pass
 
     def delete_from_list(self):
