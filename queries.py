@@ -21,6 +21,6 @@ ADD_TO_LIST = '''update chefbot.shopping_list l
                     (ingredient_id, amount)
                     select {ingredient_id}, {amount}
                     where not exists (
-                        select 1 
-                        from chefbot.shopping_list 
+                        select 1
+                        from chefbot.shopping_list
                         where ingredient_id={ingredient_id});'''

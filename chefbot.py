@@ -122,6 +122,10 @@ class Chefbot(object):
             return ('Okay! I\'ve added {} {} {} to the list'.format(
                 quantity, ing_unit, ing_name))
 
+        else:
+            # TODO: need more information to decide which item to add
+            pass
+
     def delete_from_list(self, item, quantity):
         # Delete item/quantity from list
         pass
