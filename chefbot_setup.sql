@@ -1,3 +1,7 @@
+begin;
+
+-- drop schema chefbot cascade;
+
 create schema chefbot;
 
 create table chefbot.ingredients (
@@ -23,7 +27,7 @@ create table chefbot.shopping_list (
 create table chefbot.schedule (
     dow int,
     recipe_id int references chefbot.ingredients
-)
+);
 
 insert into chefbot.ingredients
     (name, unit, category, auto_add)
@@ -168,6 +172,7 @@ values
     ('butter (unsalted)', 'teaspoons', 'dairy', false),
 
     -- REFRIGERATED
+    ('eggs', '', 'refrigerated', true),
     ('lemon juice', 'teaspoons', 'refrigerated', false),
     ('lime juice', 'teaspoons', 'refrigerated', false),
 
@@ -200,4 +205,6 @@ values
     ('hot dogs', 'pounds', 'meat', false),
 
     -- OTHER
+    ('tupperware', 'sets', 'other', false);
 
+commit;

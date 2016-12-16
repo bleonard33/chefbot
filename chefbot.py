@@ -18,7 +18,7 @@ class DBConnection(object):
 
     def quit(self):
         self.cursor.close()
-        self.conn.close()       
+        self.conn.close()
 
 
 class Chefbot(object):
@@ -58,9 +58,17 @@ class Chefbot(object):
                                 in self.slack_client.rtm_read()
                                 if x['type'] == 'message' and
                                     self.AT_BOT in x['text']]
-                
+
                 for message in messages:
+                    # TODO: put this in a try/except
+                    # try:
                     self.parse_messages(message)
+                    # except Exception as e:
+                    #     self.slack_client.api_call(
+                    #         "chat.postMessage",
+                    #         channel=message['channel'],
+                    #         text='Whoops! Something went wrong: {}'.format(e),
+                    #         as_user=True)
 
                 time.sleep(self.WEBSOCKET_DELAY)
         else:
@@ -71,26 +79,64 @@ class Chefbot(object):
         text = message['text'].split(' ')
 
         if 'add' in text:
-            # Purge everything before "add" and after "to"
-            text = text[text.index('add') + 1:]
-            if 'to' in text:
-                text = text[:text.index('to')]
+            response = self.add_to_list(text)
 
-            unit = self.parse_unit(text)
-            print unit
+        self.slack_client.api_call(
+            "chat.postMessage",
+            channel=message['channel'],
+            text=response,
+            as_user=True)
 
-    def add_to_list(self, item, quantity, unit):
+    def add_to_list(self, text):
         # Add items to list
         # TODO: list different ingredient options including word
-        pass
+
+        # Purge everything before "add" and after "to"
+        text = text[text.index('add') + 1:]
+        if 'to' in text:
+            text = text[:text.index('to')]
+
+        # See if quantity is given, else assume 1 unit
+        try:
+            quantity = float(text[0])
+            text.pop(0)
+        except ValueError:
+            quantity = 1
+
+        item = ' '.join(text)
+
+        self.db.cursor.execute(queries.CHECK_ITEM_TEXT.format(item))
+        ing_results = self.db.cursor.fetchall()
+
+        if len(ing_results) == 0:
+            return 'I\'m not sure what that is. Try again.'
+        elif len(ing_results) == 1:
+
+            ing_id, ing_name, ing_unit = ing_results[0]
+
+            self.db.cursor.execute(queries.ADD_TO_LIST.format(
+                ingredient_id=ing_id, amount=quantity))
+
+            self.db.conn.commit()
+
+            return ('Okay! I\'ve added {} {} {} to the list'.format(
+                quantity, ing_unit, ing_name))
 
     def delete_from_list(self, item, quantity):
         # Delete item/quantity from list
         pass
 
-    def truncate_list(self):
-        # Delete shopping list
+    def get_ingredient_id(self, ingredient):
+        # Find out correct ingredient id and confirm
         pass
+
+    def new_ingredient(self, ingredient):
+        pass
+
+    def reset_list(self):
+        # Delete shopping list
+        self.cursor.execute(queries.RESET_LIST)
+        self.conn.commit()
 
     def export_list(self):
         # Compile list into sorted post
@@ -110,8 +156,9 @@ class Chefbot(object):
         pass
 
     def reset_schedule(self):
-        # Truncate schedule
-        pass
+        # Delete schedule
+        self.cursor.execute(queries.RESET_SCHEDULE)
+        self.conn.commit()
 
     def help(self):
         # Return help text with available commands
@@ -119,14 +166,9 @@ class Chefbot(object):
 
     def parse_unit(self, message):
         overlap = set(message) & set(self.units)
-        
+
         if len(overlap) > 0:
             return list(set(message) & set(self.units))[0]
-
-    @staticmethod
-    def get_ingredient_id(ingredient):
-        # Find out correct ingredient id and confirm
-        pass
 
 if __name__ == "__main__":
 
