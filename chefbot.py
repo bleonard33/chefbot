@@ -1,5 +1,4 @@
 import os
-import re
 import time
 import psycopg2
 import queries
@@ -7,8 +6,10 @@ from slackclient import SlackClient
 
 
 class DBConnection(object):
-    conn = psycopg2.connect("dbname=postgres user=bleonard")
-    cursor = conn.cursor()
+    
+    def __init__(self):
+        self.conn = psycopg2.connect("dbname=postgres user=bleonard")
+        self.cursor = self.conn.cursor()
 
     def __enter__(self):
         return self
@@ -19,6 +20,18 @@ class DBConnection(object):
     def quit(self):
         self.cursor.close()
         self.conn.close()
+
+
+class Recipe(object):
+    pass
+
+
+class Schedule(object):
+    pass
+
+
+# class Ingredient(object):
+#     pass
 
 
 class Chefbot(object):
@@ -35,18 +48,15 @@ class Chefbot(object):
         self.slack_client = SlackClient(self.API_TOKEN)
         self.db = DBConnection()
 
-        self.db.cursor.execute(queries.UNIT_QUERY)
-        self.units = [x[0] for x
-                            in self.db.cursor.fetchall()
-                            if x[0] != '']
-
-        print self.units
-
     def __enter__(self):
         return self
 
     def __exit__(self, type, value, traceback):
         self.db.quit()
+
+    def execute(self, query):
+        self.cursor.execute(query)
+        self.conn.commit()
 
     def listen(self):
         # Listen to messages from the slack RTM API
@@ -105,8 +115,8 @@ class Chefbot(object):
 
         item = ' '.join(text)
 
-        self.db.cursor.execute(queries.CHECK_ITEM_TEXT.format(item))
-        ing_results = self.db.cursor.fetchall()
+        self.cursor.execute(queries.CHECK_ITEM_TEXT.format(item))
+        ing_results = self.cursor.fetchall()
 
         if len(ing_results) == 0:
             return 'I\'m not sure what that is. Try again.'
@@ -114,10 +124,8 @@ class Chefbot(object):
 
             ing_id, ing_name, ing_unit = ing_results[0]
 
-            self.db.cursor.execute(queries.ADD_TO_LIST.format(
+            self.execute(queries.ADD_TO_LIST.format(
                 ingredient_id=ing_id, amount=quantity))
-
-            self.db.conn.commit()
 
             return ('Okay! I\'ve added {} {} {} to the list'.format(
                 quantity, ing_unit, ing_name))
@@ -138,9 +146,8 @@ class Chefbot(object):
         pass
 
     def reset_list(self):
-        # Delete shopping list
-        self.cursor.execute(queries.RESET_LIST)
-        self.conn.commit()
+        # Truncate shopping list
+        self.execute(queries.RESET_LIST)
 
     def export_list(self):
         # Compile list into sorted post
@@ -160,9 +167,8 @@ class Chefbot(object):
         pass
 
     def reset_schedule(self):
-        # Delete schedule
-        self.cursor.execute(queries.RESET_SCHEDULE)
-        self.conn.commit()
+        # Truncate schedule table
+        self.execute(queries.RESET_SCHEDULE)
 
     def help(self):
         # Return help text with available commands

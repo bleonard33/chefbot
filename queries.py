@@ -1,5 +1,3 @@
-UNIT_QUERY = 'select distinct unit from chefbot.ingredients'
-
 RESET_LIST = 'truncate chefbot.shopping_list'
 
 RESET_SCHEDULE = 'truncate chefbot.schedule'
